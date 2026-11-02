@@ -9,12 +9,6 @@ const detail = ref<TripDetail | null>(null)
 const pending = ref<Record<number, boolean>>({})
 const showRemind = ref(false)
 
-const progressText = computed(() => {
-  const t = detail.value?.trip
-  if (!t) return '0/0'
-  return `${t.checked_count}/${t.total_count}`
-})
-
 const percent = computed(() => {
   const t = detail.value?.trip
   if (!t || !t.total_count) return 0
@@ -105,10 +99,26 @@ async function finish(confirmUnchecked: boolean) {
 
 <template>
   <view class="page" v-if="detail">
-    <view class="top">
-      <view class="name">{{ detail.trip.scene_name }}</view>
-      <view class="prog">{{ progressText }} 已确认 · {{ percent }}%</view>
-      <view class="bar"><view class="bar-inner" :style="{ width: percent + '%' }" /></view>
+    <view class="top card">
+      <view class="top-row">
+        <view class="top-info">
+          <view class="eyebrow">正在检查</view>
+          <view class="name">{{ detail.trip.scene_name }}</view>
+        </view>
+        <view class="count">
+          <text class="count-num">{{ detail.trip.checked_count }}</text>
+          <text class="count-total">/{{ detail.trip.total_count }}</text>
+        </view>
+      </view>
+      <view class="bar">
+        <view class="bar-inner" :style="{ width: percent + '%' }" />
+      </view>
+      <view class="prog">{{ percent === 100 ? '全部确认，可以出门啦' : `已完成 ${percent}%，继续加油` }}</view>
+    </view>
+
+    <view v-if="!detail.items.length" class="empty">
+      <view class="empty-badge">!</view>
+      <text>这个场景还没有物品，先临时添加一件吧</text>
     </view>
 
     <view class="list">
@@ -119,36 +129,54 @@ async function finish(confirmUnchecked: boolean) {
         :class="{ checked: item.is_checked }"
         @click="toggle(item)"
       >
-        <view class="check">{{ item.is_checked ? '✓' : '' }}</view>
+        <view class="check">
+          <text v-if="item.is_checked" class="check-mark">✓</text>
+        </view>
         <view class="info">
           <view class="title">{{ item.item_name }}</view>
-          <view class="tags">
-            <text v-if="item.is_important" class="tag imp">重要</text>
-            <text v-if="item.is_required" class="tag req">必查</text>
-            <text v-if="item.is_temporary" class="tag tmp">临时</text>
+          <view v-if="item.is_important || item.is_required || item.is_temporary" class="tags">
+            <text v-if="item.is_important" class="tag tag-imp">重要</text>
+            <text v-if="item.is_required" class="tag tag-req">必查</text>
+            <text v-if="item.is_temporary" class="tag tag-tmp">临时</text>
           </view>
         </view>
-        <text v-if="item.is_temporary" class="del" @click.stop="removeTemp(item)">删</text>
+        <view
+          v-if="item.is_temporary"
+          class="del"
+          hover-class="pressed"
+          aria-label="删除临时物品"
+          @click.stop="removeTemp(item)"
+        >
+          ×
+        </view>
       </view>
     </view>
 
-    <view class="footer">
-      <button class="btn btn-ghost" @click="addTemp">临时添加</button>
-      <button class="btn btn-primary" @click="prepareLeave">准备出门</button>
+    <view class="dock">
+      <button class="btn btn-ghost" hover-class="btn-hover" @click="addTemp">
+        <text class="btn-icon">+</text>
+        <text>临时添加</text>
+      </button>
+      <button class="btn btn-primary" hover-class="btn-hover" @click="prepareLeave">
+        <text>准备出门</text>
+        <text class="btn-icon">→</text>
+      </button>
     </view>
 
     <view v-if="showRemind" class="mask" @click="showRemind = false">
       <view class="sheet" @click.stop>
-        <view class="sheet-title">还有 {{ unchecked.length }} 件未确认</view>
-        <view v-if="uncheckedRequired.length" class="warn">含 {{ uncheckedRequired.length }} 件必查项</view>
+        <view class="sheet-handle" />
+        <view class="sheet-badge">!</view>
+        <view class="sheet-title">还有 {{ unchecked.length }} 件没确认</view>
+        <view v-if="uncheckedRequired.length" class="warn">其中 {{ uncheckedRequired.length }} 件是必查项</view>
         <view class="unchecked">
-          <text v-for="i in unchecked" :key="i.id" class="u-item">
-            {{ i.item_name }}<text v-if="i.is_required">（必查）</text>
-          </text>
+          <view v-for="i in unchecked" :key="i.id" class="u-item" :class="{ req: i.is_required }">
+            {{ i.item_name }}
+          </view>
         </view>
-        <button class="btn btn-ghost" @click="showRemind = false">返回继续检查</button>
-        <button class="btn btn-primary" style="margin-top: 16rpx" @click="finish(true)">
-          我确认不需要这些物品，仍然出门
+        <button class="btn btn-primary" hover-class="btn-hover" @click="showRemind = false">返回继续检查</button>
+        <button class="btn btn-ghost sheet-second" hover-class="btn-hover" @click="finish(true)">
+          不需要这些，仍然出门
         </button>
       </view>
     </view>
@@ -156,49 +184,258 @@ async function finish(confirmUnchecked: boolean) {
 </template>
 
 <style scoped>
-.page { padding: 24rpx 24rpx 180rpx; min-height: 100vh; }
-.top { background: #fff; border-radius: 24rpx; padding: 28rpx; margin-bottom: 20rpx; }
-.name { font-size: 36rpx; font-weight: 700; }
-.prog { margin-top: 8rpx; color: var(--muted); font-size: 24rpx; }
-.bar { margin-top: 16rpx; height: 12rpx; background: var(--line); border-radius: 999rpx; overflow: hidden; }
-.bar-inner { height: 100%; background: var(--primary); }
-.list { display: flex; flex-direction: column; gap: 16rpx; }
+.page {
+  min-height: 100vh;
+  padding: 24rpx 32rpx 220rpx;
+}
+
+.top {
+  padding: 32rpx;
+  margin-bottom: 32rpx;
+  background: var(--primary);
+}
+
+.top-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.top-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.eyebrow {
+  font-size: 22rpx;
+  font-weight: 800;
+  letter-spacing: 4rpx;
+  opacity: 0.7;
+}
+
+.name {
+  margin-top: 4rpx;
+  font-size: 44rpx;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.count {
+  display: flex;
+  align-items: baseline;
+  line-height: 1;
+}
+
+.count-num {
+  font-size: 80rpx;
+  font-weight: 900;
+}
+
+.count-total {
+  font-size: 32rpx;
+  font-weight: 800;
+  opacity: 0.6;
+}
+
+.bar {
+  height: 28rpx;
+  margin-top: 24rpx;
+  border-radius: 999rpx;
+  border: 3rpx solid var(--ink);
+  background: var(--card);
+  overflow: hidden;
+}
+
+.bar-inner {
+  height: 100%;
+  background: var(--ink);
+  transition: width 0.3s ease;
+}
+
+.prog {
+  margin-top: 14rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
 .row {
-  display: flex; align-items: center; gap: 20rpx;
-  background: #fff; border-radius: 20rpx; padding: 28rpx 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 28rpx;
+  border-radius: 28rpx;
+  border: 4rpx solid var(--ink);
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, background 0.15s ease;
 }
-.row.checked { opacity: 0.72; }
+
+.row:active {
+  transform: translateY(4rpx);
+  box-shadow: none;
+}
+
+.row.checked {
+  background: var(--primary-soft);
+}
+
 .check {
-  width: 56rpx; height: 56rpx; border-radius: 16rpx;
-  border: 3rpx solid var(--primary); color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 28rpx; font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60rpx;
+  height: 60rpx;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 4rpx solid var(--ink);
+  background: var(--card);
 }
-.row.checked .check { background: var(--primary); }
-.info { flex: 1; }
-.title { font-size: 30rpx; font-weight: 600; }
-.tags { margin-top: 8rpx; display: flex; gap: 10rpx; }
-.tag { font-size: 20rpx; padding: 4rpx 12rpx; border-radius: 8rpx; }
-.imp { background: #f8ead8; color: var(--warn); }
-.req { background: #f7e8e5; color: var(--danger); }
-.tmp { background: var(--primary-soft); color: var(--primary); }
-.del { color: var(--danger); font-size: 24rpx; padding: 12rpx; }
-.footer {
-  position: fixed; left: 0; right: 0; bottom: 0;
-  display: flex; gap: 16rpx; padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
-  background: rgba(247,244,239,.96);
+
+.row.checked .check {
+  background: var(--ink);
 }
-.footer .btn { flex: 1; }
+
+.check-mark {
+  color: var(--primary);
+  font-size: 30rpx;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 32rpx;
+  font-weight: 800;
+}
+
+.row.checked .title {
+  text-decoration: line-through;
+  text-decoration-thickness: 4rpx;
+  color: var(--muted);
+}
+
+.tags {
+  display: flex;
+  gap: 10rpx;
+  margin-top: 10rpx;
+}
+
+.del {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60rpx;
+  height: 60rpx;
+  flex-shrink: 0;
+  border-radius: 18rpx;
+  border: 3rpx solid var(--ink);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 36rpx;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .mask {
-  position: fixed; inset: 0; background: rgba(0,0,0,.45);
-  display: flex; align-items: flex-end;
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(23, 23, 28, 0.55);
 }
+
 .sheet {
-  width: 100%; background: #fff; border-radius: 28rpx 28rpx 0 0;
-  padding: 36rpx 28rpx calc(28rpx + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  padding: 20rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
+  border-radius: 48rpx 48rpx 0 0;
+  border-top: 4rpx solid var(--ink);
+  background: var(--card);
+  text-align: center;
 }
-.sheet-title { font-size: 32rpx; font-weight: 700; }
-.warn { margin-top: 8rpx; color: var(--danger); font-size: 24rpx; }
-.unchecked { margin: 20rpx 0 28rpx; display: flex; flex-direction: column; gap: 8rpx; }
-.u-item { color: var(--muted); font-size: 26rpx; }
+
+.sheet-handle {
+  align-self: center;
+  width: 80rpx;
+  height: 10rpx;
+  margin-bottom: 28rpx;
+  border-radius: 999rpx;
+  background: var(--line);
+}
+
+.sheet-badge {
+  display: flex;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 36rpx;
+  border: 4rpx solid var(--ink);
+  background: var(--accent);
+  box-shadow: var(--shadow-sm);
+  color: var(--card);
+  font-size: 56rpx;
+  font-weight: 900;
+  line-height: 1;
+  transform: rotate(-6deg);
+}
+
+.sheet-title {
+  margin-top: 28rpx;
+  font-size: 38rpx;
+  font-weight: 900;
+}
+
+.warn {
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.unchecked {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14rpx;
+  margin: 32rpx 0 36rpx;
+}
+
+.u-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  border: 3rpx solid var(--ink);
+  background: var(--bg);
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.u-item.req {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.sheet-second {
+  margin-top: 20rpx;
+}
 </style>

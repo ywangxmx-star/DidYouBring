@@ -3,7 +3,7 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "带妥妥",
+        "navigationBarTitleText": "带了么",
         "enableShareAppMessage": true,
         "enableShareTimeline": true
       }
@@ -59,13 +59,13 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "带妥妥",
-    "navigationBarBackgroundColor": "#F7F4EF",
-    "backgroundColor": "#F7F4EF"
+    "navigationBarTitleText": "带了么",
+    "navigationBarBackgroundColor": "#F3F2EC",
+    "backgroundColor": "#F3F2EC"
   },
   "tabBar": {
-    "color": "#8A857C",
-    "selectedColor": "#2F6F5E",
+    "color": "#74747C",
+    "selectedColor": "#17171C",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "black",
     "list": [

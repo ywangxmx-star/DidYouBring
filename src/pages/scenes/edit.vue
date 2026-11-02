@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { api } from '@/api'
 import type { Item } from '@/api/types'
@@ -9,6 +9,8 @@ const name = ref('')
 const icon = ref('custom')
 const items = ref<Item[]>([])
 const selected = ref<Record<number, { on: boolean; required: boolean }>>({})
+
+const selectedCount = computed(() => Object.values(selected.value).filter((v) => v.on).length)
 
 onLoad(async (q) => {
   id.value = Number(q?.id || 0)
@@ -70,34 +72,136 @@ async function save() {
 <template>
   <view class="page">
     <view class="label">场景名称</view>
-    <input class="input" v-model="name" placeholder="如：周一通勤" maxlength="64" />
-    <view class="label">关联物品</view>
-    <view v-if="!items.length" class="empty">请先在物品页添加物品</view>
-    <view v-for="it in items" :key="it.id" class="row">
-      <view class="left" @click="toggle(it.id)">
-        <view class="check" :class="{ on: selected[it.id]?.on }">{{ selected[it.id]?.on ? '✓' : '' }}</view>
-        <text>{{ it.name }}</text>
-      </view>
-      <text class="req" :class="{ on: selected[it.id]?.required }" @click="toggleReq(it.id)">必查</text>
+    <input
+      class="input"
+      v-model="name"
+      placeholder="如：周一通勤"
+      placeholder-class="input-placeholder"
+      maxlength="64"
+    />
+
+    <view class="label-row">
+      <view class="label">关联物品</view>
+      <view class="count">已选 {{ selectedCount }}</view>
     </view>
-    <button class="btn btn-primary save" @click="save">保存</button>
+
+    <view v-if="!items.length" class="empty">
+      <view class="empty-badge">+</view>
+      <text>请先在物品页添加物品</text>
+    </view>
+
+    <view class="list">
+      <view
+        v-for="it in items"
+        :key="it.id"
+        class="row"
+        :class="{ on: selected[it.id]?.on }"
+        @click="toggle(it.id)"
+      >
+        <view class="check">
+          <text v-if="selected[it.id]?.on" class="check-mark">✓</text>
+        </view>
+        <text class="name">{{ it.name }}</text>
+        <view
+          class="pill-btn req"
+          :class="{ active: selected[it.id]?.required, disabled: !selected[it.id]?.on }"
+          hover-class="pressed"
+          @click.stop="toggleReq(it.id)"
+        >
+          必查
+        </view>
+      </view>
+    </view>
+
+    <view class="dock">
+      <button class="btn btn-dark" hover-class="btn-hover" @click="save">保存场景</button>
+    </view>
   </view>
 </template>
 
 <style scoped>
-.page { padding: 32rpx 24rpx 48rpx; }
-.label { margin: 24rpx 0 12rpx; color: var(--muted); font-size: 24rpx; }
+.page {
+  padding: 8rpx 32rpx 220rpx;
+}
+
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48rpx;
+  padding: 0 18rpx;
+  margin-top: 20rpx;
+  border-radius: 999rpx;
+  background: var(--ink);
+  color: var(--primary);
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
 .row {
-  background: #fff; border-radius: 16rpx; padding: 24rpx;
-  margin-bottom: 12rpx; display: flex; justify-content: space-between; align-items: center;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 24rpx;
+  border: 3rpx solid var(--ink);
+  background: var(--card);
 }
-.left { display: flex; align-items: center; gap: 16rpx; }
+
+.row.on {
+  background: var(--primary-soft);
+  box-shadow: var(--shadow-sm);
+}
+
 .check {
-  width: 44rpx; height: 44rpx; border-radius: 12rpx; border: 2rpx solid var(--primary);
-  display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52rpx;
+  height: 52rpx;
+  flex-shrink: 0;
+  border-radius: 16rpx;
+  border: 3rpx solid var(--ink);
+  background: var(--card);
 }
-.check.on { background: var(--primary); }
-.req { color: var(--muted); font-size: 24rpx; padding: 8rpx 12rpx; }
-.req.on { color: var(--danger); font-weight: 600; }
-.save { margin-top: 40rpx; }
+
+.row.on .check {
+  background: var(--ink);
+}
+
+.check-mark {
+  color: var(--primary);
+  font-size: 26rpx;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+.req.active {
+  background: var(--accent);
+  border-color: var(--ink);
+  color: var(--card);
+}
+
+.req.disabled {
+  opacity: 0.35;
+}
 </style>
