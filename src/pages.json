@@ -1,0 +1,92 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "带妥妥",
+        "enableShareAppMessage": true,
+        "enableShareTimeline": true
+      }
+    },
+    {
+      "path": "pages/check/check",
+      "style": {
+        "navigationBarTitleText": "检查清单"
+      }
+    },
+    {
+      "path": "pages/check/done",
+      "style": {
+        "navigationBarTitleText": "检查完成"
+      }
+    },
+    {
+      "path": "pages/items/index",
+      "style": {
+        "navigationBarTitleText": "我的物品"
+      }
+    },
+    {
+      "path": "pages/items/edit",
+      "style": {
+        "navigationBarTitleText": "编辑物品"
+      }
+    },
+    {
+      "path": "pages/records/index",
+      "style": {
+        "navigationBarTitleText": "历史记录"
+      }
+    },
+    {
+      "path": "pages/records/detail",
+      "style": {
+        "navigationBarTitleText": "记录详情"
+      }
+    },
+    {
+      "path": "pages/scenes/index",
+      "style": {
+        "navigationBarTitleText": "场景管理"
+      }
+    },
+    {
+      "path": "pages/scenes/edit",
+      "style": {
+        "navigationBarTitleText": "编辑场景"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "带妥妥",
+    "navigationBarBackgroundColor": "#F7F4EF",
+    "backgroundColor": "#F7F4EF"
+  },
+  "tabBar": {
+    "color": "#8A857C",
+    "selectedColor": "#2F6F5E",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/tab-home.png",
+        "selectedIconPath": "static/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/items/index",
+        "text": "物品",
+        "iconPath": "static/tab-item.png",
+        "selectedIconPath": "static/tab-item-active.png"
+      },
+      {
+        "pagePath": "pages/records/index",
+        "text": "记录",
+        "iconPath": "static/tab-record.png",
+        "selectedIconPath": "static/tab-record-active.png"
+      }
+    ]
+  }
+}
